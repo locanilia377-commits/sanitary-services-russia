@@ -22,6 +22,102 @@
 #pane-services table,#pane-execution table{min-width:900px}
 #pane-services .process-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 .tabs .tab{white-space:normal}
+#detail:has(#params-form) {
+ width: min(860px, calc(100% - 24px));
+ max-width: none;
+ max-height: min(88dvh, 920px);
+ padding: 0;
+ overscroll-behavior: contain;
+ scroll-padding: 92px 0 120px;
+}
+
+#detail:has(#params-form) .dialog-top {
+ position: sticky;
+ top: 0;
+ z-index: 2;
+ margin: 0;
+ padding: 18px clamp(16px, 4vw, 32px) 14px;
+ background: var(--panel);
+ border-bottom: 1px solid var(--line);
+}
+
+#detail:has(#params-form) .dialog-content {
+ padding: 20px clamp(16px, 4vw, 32px) 0;
+}
+
+.params-guide { margin-bottom: 24px; }
+.params-guide p { margin: 8px 0; }
+.params-steps { margin: 8px 0 16px; padding-inline-start: 22px; font-size: 14px; }
+.params-steps li + li { margin-top: 4px; }
+.params-preview { padding: 14px; border-radius: 12px; background: var(--bg); }
+.params-preview p { margin: 8px 0 0; color: var(--muted); }
+.params-flow {
+ display: grid;
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+ gap: 20px;
+ margin: 10px 0 0;
+ padding: 0;
+ list-style: none;
+}
+.params-flow li {
+ position: relative;
+ display: grid;
+ gap: 2px;
+ padding: 8px 10px;
+ border-radius: 8px;
+ background: var(--panel);
+ font-size: 13px;
+}
+.params-flow li:last-child { background: var(--soft); }
+.params-flow li:not(:last-child)::after {
+ content: '→';
+ position: absolute;
+ inset-inline-start: calc(100% + 4px);
+ top: 50%;
+ transform: translateY(-50%);
+ color: var(--muted);
+}
+.params-flow strong { font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.params-example {
+ margin-top: 12px;
+ border-bottom: 1px solid var(--line);
+}
+.params-example summary { padding: 10px 0; font-weight: 650; cursor: pointer; }
+.params-example summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.params-example p:last-child { margin-bottom: 14px; }
+
+#params-form { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.parameter-field { min-width: 0; }
+#params-form label { font-size: 14px; font-weight: 650; }
+.parameter-field small { display: block; margin-top: 5px; font-size: 13px; color: var(--muted); }
+#params-form input { min-width: 0; min-height: 44px; font-size: 16px; }
+.params-actions {
+ position: sticky;
+ bottom: 0;
+ z-index: 1;
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+ grid-column: 1 / -1;
+ padding: 12px 0;
+ border-top: 1px solid var(--line);
+ background: var(--panel);
+}
+.params-actions .error { flex-basis: 100%; }
+#params-form .params-actions button { margin: 0; }
+
+@media (max-width: 620px) {
+ #params-form { grid-template-columns: minmax(0, 1fr); }
+ .params-flow { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+ .params-flow li { grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; }
+ .params-flow li:not(:last-child)::after {
+  content: '↓';
+  inset-inline-start: 10px;
+  top: calc(100% - 4px);
+  transform: none;
+ }
+ .params-actions button { flex: 1 1 auto; }
+}
 </style></head>
 <body><header class="top"><div class="shell top-inner"><div class="brand"><span class="brand-icon" aria-hidden="true">м</span><span id="brand-name">Санитарные услуги · КЧР, КМВ и Георгиевск</span></div><div class="top-actions"><button class="btn" id="edit-inputs">Параметры</button><button class="btn" id="sources">Источники</button><button class="btn primary optional" id="print">Сохранить PDF</button></div></div></header>
 <main class="shell"><div class="intro"><div><p class="eyebrow">Модель бизнеса · 18 ноября 2026</p><h1>Санитарные услуги</h1><p id="segment"></p></div><div class="basis">Типовые значения модели.<br>Фактические показатели бизнеса отмечаются отдельно.</div></div>
@@ -239,11 +335,125 @@ $('#close-dialog').addEventListener('click',()=>$('#detail').close());$('#print'
 $('#download-model')?.addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(m,null,2)],{type:'application/json;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download=(m.meta.slug||'business-model')+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 $('#access-audit')?.addEventListener('click',()=>open('Доступы и исходные данные','Что с доступами','<div class="table-wrap"><table><thead><tr><th>Материал</th><th>Статус</th><th>Влияние</th><th>Действие</th></tr></thead><tbody>'+(m.access_audit||[]).map(row=>'<tr>'+['item','status','impact','action'].map(key=>'<td>'+esc(row[key])+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'));
 $('#sources').addEventListener('click',()=>open('Источники и статусы','На чём построена модель',m.sources.map(s=>'<p><a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(s.name)+'</a><br><span class="basis">'+esc(s.kind)+'</span></p>').join('')+'<p class="basis">'+esc(m.meta.basis)+'</p>'));
-$('#edit-inputs').addEventListener('click',()=>{
- const fields=[['traffic','Посетители / месяц'],['conversion','Посетитель → покупатель, %'],['price','Средний чек, ₽'],['direct','Прямые без процентов и резерва, ₽'],['variable_rate','Процентные статьи, %'],['service_reserve','Сервисный резерв / заказ, ₽'],['first_cost','Первая продажа / клиент, ₽'],['cpc','CPC, ₽'],['fixed','Постоянные / месяц, ₽'],['tracking','Сопровождение / месяц, ₽'],['target_profit','Цель прибыли / месяц, ₽'],['preparation','Подготовка разово, ₽']];
- open('Общие параметры','Изменить типовые значения','<form id="params-form" class="dialog-form">'+fields.map(([k,label])=>'<label>'+label+'<input name="'+k+'" type="number" min="0" step="any" required value="'+(k==='conversion'||k==='variable_rate'?m.inputs[k]*100:m.inputs[k])+'"></label>').join('')+'<button class="btn primary" type="submit">Пересчитать все модели</button><button class="btn" type="button" id="reset-params">Вернуть исходные значения</button></form><p id="params-error" class="error" role="alert"></p>');
- $('#params-form').addEventListener('submit',e=>{e.preventDefault();const next=JSON.parse(JSON.stringify(m));for(const[k]of fields){const v=Number(e.target.elements.namedItem(k).value);next.inputs[k]=k==='conversion'||k==='variable_rate'?v/100:v;}try{NicheModel.validate(next);m=next;render();$('#detail').close();}catch(err){$('#params-error').textContent=err.message;}});
- $('#reset-params').addEventListener('click',()=>{m=JSON.parse(JSON.stringify(original));render();$('#detail').close();});
+const parameterFields = [
+ ['traffic', 'Посетители / месяц', 'Целевые переходы за месяц. Больше переходов — больше первых визитов и расходов на рекламу.'],
+ ['conversion', 'Посетитель → покупатель, %', 'Доля переходов, ставших первым оплаченным и принятым визитом. Введите 3,5 для 3,5%. Определяет число новых клиентов.'],
+ ['price', 'Средний чек, ₽', 'Выручка за один визит. Меняет общую выручку и расходы в процентах от чека.'],
+ ['direct', 'Прямые без процентов и резерва, ₽', 'Труд, расходники и дорога на один визит. Вычитаются из чека. Резерв и процентные расходы идут отдельными строками.'],
+ ['variable_rate', 'Процентные статьи, %', 'Общая ставка расходов от чека, например налоги и комиссии. 7% от 6 000 ₽ — это 420 ₽ на визит.'],
+ ['service_reserve', 'Сервисный резерв / заказ, ₽', 'Запас в рублях на исправления и повторный выезд по тому же заказу. Учитывается на каждый визит.'],
+ ['first_cost', 'Первая продажа / клиент, ₽', 'Затраты на смету, согласование и оформление. Списываются один раз на нового клиента сверх рекламы.'],
+ ['cpc', 'CPC, ₽', 'Цена одного перехода из рекламы. Умножается на переходы и даёт рекламный бюджет месяца.'],
+ ['fixed', 'Постоянные / месяц, ₽', 'Расходы бизнеса за месяц, например хранение и связь. Вычитаются из результата даже при нуле заказов.'],
+ ['tracking', 'Сопровождение / месяц, ₽', 'Ежемесячный бюджет на ведение проекта. Если он уже в постоянных расходах, здесь укажите 0.'],
+ ['target_profit', 'Цель прибыли / месяц, ₽', 'Желаемая прибыль. Меняет число визитов для цели и таблицу Ханина.'],
+ ['preparation', 'Подготовка разово, ₽', 'Стартовые затраты на оснащение, документы и подготовку продаж. Уменьшают остаток денег на старте.']
+];
+const percentParameters = new Set(['conversion', 'variable_rate']);
+
+$('#edit-inputs').addEventListener('click', () => {
+ const displayed = Object.fromEntries(parameterFields.map(([key]) => [key, percentParameters.has(key)
+  ? Number((m.inputs[key] * 100).toPrecision(15))
+  : m.inputs[key]]));
+ const fields = parameterFields.map(([key, label, hint]) => `
+  <div class="parameter-field">
+   <label for="param-${key}">${label}</label>
+   <input id="param-${key}" name="${key}" type="number" min="0" step="any" ${key === 'conversion' ? 'max="100"' : ''}
+    required value="${displayed[key]}" aria-describedby="hint-${key}" inputmode="decimal">
+   <small id="hint-${key}">${hint}</small>
+  </div>`).join('');
+ open('Общие параметры', 'Изменить типовые значения', `
+  <section class="params-guide" aria-labelledby="params-guide-title">
+   <h3 id="params-guide-title">Как пользоваться</h3>
+   <p>Один заказ — один оплаченный и принятый визит. Начальные цифры — допущения модели.</p>
+   <ol class="params-steps">
+    <li>Введите переходы, конверсию и средний чек за один месяц.</li>
+    <li>Укажите расходы. Проценты вводите как <b>3,5</b> или <b>3.5</b>, в зависимости от браузера.</li>
+    <li>Нажмите <b>«Пересчитать все модели»</b>. Сравните результат, объём для цели и плановые слоты.</li>
+   </ol>
+   <div class="params-preview">
+    <h3>Схема расчёта по введённым значениям</h3>
+    <ol class="params-flow" aria-label="От переходов к результату первого месяца">
+     <li><span>Переходы</span><strong data-param-preview="traffic">—</strong></li>
+     <li><span>Первые визиты</span><strong data-param-preview="orders">—</strong></li>
+     <li><span>Выручка</span><strong data-param-preview="revenue">—</strong></li>
+     <li><span>Результат месяца</span><strong data-param-preview="profit">—</strong></li>
+    </ol>
+    <p>Результат до разовой подготовки. Подготовка учтена в таблице денег в разделе «Экономика заказа».</p>
+   </div>
+   <details class="params-example">
+    <summary>Разобрать пример с чеком 6 000 ₽</summary>
+    <p>800 переходов × 3,5% = 28 визитов. Выручка — 168 000 ₽.</p>
+    <p>С визита остаётся 3 530 ₽ до рекламы и расходов месяца. Из 6 000 ₽ вычитаются 1 450 ₽ прямых расходов, 420 ₽ процентных, 250 ₽ резерва и 350 ₽ на первую продажу.</p>
+    <p>28 × 3 530 ₽ − 12 000 ₽ рекламы − 16 000 ₽ расходов месяца = <b>70 840 ₽</b>. С подготовкой 20 000 ₽ деньги за месяц вырастут на 50 840 ₽ при оплате всех визитов в том же месяце.</p>
+    <p>Для цели 200 000 ₽ при том же рекламном бюджете нужно 65 визитов при 64 плановых слотах. Если при тех же 800 переходах конверсия вырастет до 4%, модель покажет 32 визита и 84 960 ₽ результата.</p>
+    <p>Чтобы сохранить сценарий перед обновлением страницы, нажмите «Данные модели ↓» внизу сайта.</p>
+   </details>
+  </section>
+  <form id="params-form" class="dialog-form">
+   ${fields}
+   <div class="params-actions">
+    <div id="params-error" class="error" role="alert" hidden></div>
+    <button class="btn primary" type="submit">Пересчитать все модели</button>
+    <button class="btn" type="button" id="reset-params">Вернуть исходные значения</button>
+   </div>
+  </form>`);
+
+ $('#detail').scrollTop = 0;
+ const form = $('#params-form');
+ const error = $('#params-error');
+ const preview = [...$('#detail-content').querySelectorAll('[data-param-preview]')];
+
+ function readInputs() {
+  return Object.fromEntries(parameterFields.map(([key]) => {
+   const value = form.elements.namedItem(key).valueAsNumber;
+   if (!percentParameters.has(key)) return [key, value];
+   return [key, value === displayed[key] ? m.inputs[key] : value / 100];
+  }));
+ }
+
+ function updatePreview() {
+  const inputs = readInputs();
+  const valid = !form.querySelector(':invalid') && inputs.variable_rate < 1;
+  const result = valid ? NicheModel.calc(m, inputs) : null;
+  const values = result ? {
+   traffic: fmt(result.inputs.traffic, 2),
+   orders: fmt(result.orders, 2),
+   revenue: money(result.revenue),
+   profit: money(result.profit)
+  } : null;
+  preview.forEach(node => { node.textContent = values?.[node.dataset.paramPreview] ?? '—'; });
+ }
+
+ form.addEventListener('input', () => {
+  error.hidden = true;
+  updatePreview();
+ });
+ form.addEventListener('submit', event => {
+  event.preventDefault();
+  const inputs = readInputs();
+  if (inputs.variable_rate >= 1) {
+   error.textContent = 'Процентные статьи должны быть ниже 100%.';
+   error.hidden = false;
+   return;
+  }
+  const next = {...m, inputs: {...m.inputs, ...inputs}};
+  try {
+   NicheModel.validate(next);
+   m = next;
+   render();
+   $('#detail').close();
+  } catch (err) {
+   error.textContent = err.message;
+   error.hidden = false;
+  }
+ });
+ $('#reset-params').addEventListener('click', () => {
+  m = JSON.parse(JSON.stringify(original));
+  render();
+  $('#detail').close();
+ });
+ updatePreview();
 });
 render();tab(location.hash.slice(1)||'canvas');
 })();
